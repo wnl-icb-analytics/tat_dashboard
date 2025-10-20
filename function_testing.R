@@ -1,11 +1,11 @@
 # Free-hand play for testing bits of the function out of the map_dfr() loop
 
-file_path <- r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\RNOH\20250225_DIDNCL_RAN_Feb25.csv}"
+file_path <- r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\GOSH\20250425_DIDNCL_RP4_Apr25.csv}"
 
 
-raw_data_RNOH <-  read_csv(file_path,na = c("NULL","",NULL,"1900-01-00 00:00","1900-01-00 00:00:00"), show_col_types = FALSE)
+raw_data_GOSH <-  read_csv(file_path,na = c("NULL","",NULL,"1900-01-00 00:00","1900-01-00 00:00:00"), show_col_types = FALSE)
   
-processed_data_RNOH <- read_csv(file_path,na = c("NULL","",NULL,"1900-01-00 00:00","1900-01-00 00:00:00"), show_col_types = FALSE) %>%  # NAs and column types
+processed_data_GOSH <- read_csv(file_path,na = c("NULL","",NULL,"1900-01-00 00:00","1900-01-00 00:00:00"), show_col_types = FALSE) %>%  # NAs and column types
   
   # clean names
   janitor::clean_names(case = "snake") %>%

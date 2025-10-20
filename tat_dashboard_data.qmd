@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 params:
   #input_dir: "data/providers"  # Path to the directory where provider folders are stored
   #input_dir: "C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\GOSH"
-  submission_month: "Apr25"  # The date of data submission.
+  submission_month: "Sep25"  # The date of data submission.
 format: html
 editor: source
 ---
@@ -36,12 +36,15 @@ input_dir <- c(r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provi
 submission_month <- params$submission_month
 
 dsn_name <- "SANDPIT"
-# database_name <- "Data_Lab_NCL_Dev"
-# schema_name <- "PeterS"
-# table_name <- "turnaround_times"
-database_name <- "DATA_LAB_NCL_TRAINING_TEMP"
-schema_name <- r"{"PeterS"}"
+database_name <- "Data_Lab_NCL_Dev"
+schema_name <- "PeterS"
 table_name <- "turnaround_times"
+
+#dsn_name <- "SNOWPIT"
+# database_name <- "DATA_LAB_NCL_TRAINING_TEMP"
+# schema_name <- r"{"PeterS"}"
+# table_name <- "turnaround_times"
+
 schema_table_name <- paste(schema_name,table_name,sep = ".")
 db_sch_tbl_name <- paste0(database_name,".",schema_name,".",table_name)
 
@@ -94,12 +97,24 @@ combined_data <- map_dfr(all_files, process_provider_file)
 
 # Fix UCLH and RFL missing Feb submissions. 
 # We lose November data as it is deleted as flex data during the Feb upload. 
-# Need to manually add November data back from the Jan file where it would be freeze and change it to flex.
+# Need to manually add November data back from the Jan25 file where it would be freeze and change it to flex.
 # Then manually upload WITHOUT deleting any flex data.
 
 # combined_data_novfix <- combined_data %>% filter(diagnostic_test_date_time >= as.Date("2024-11-01") & diagnostic_test_date_time <= as.Date("2024-11-30"))
 # combined_data_novfix$data_type <- "Freeze"
 # combined_data <- combined_data_novfix
+
+# Fix GOSH missing May25 (lose February data).
+# # Need to manually add February data back from the Apr25 file where it would be flex and change it to freeze.
+
+ # combined_data_febfix <- combined_data %>% filter(diagnostic_test_date_time >= as.Date("2025-02-01") & diagnostic_test_date_time <= as.Date("2025-02-28"))
+ # combined_data_febfix$data_type <- "Freeze"
+ # combined_data <- combined_data_febfix
+ 
+ # combined_data_aprfix <- combined_data %>% filter(diagnostic_test_date_time >= as.Date("2025-04-01") & diagnostic_test_date_time <= as.Date("2025-04-30"))
+ # combined_data_aprfix$data_type <- "Freeze"
+ # combined_data <- combined_data_aprfix
+
 ```
 ## GPDA data
 
@@ -274,8 +289,7 @@ wrangled_data <- combined_data %>%
 # Connect to the Sandpit
 
 con <- dbConnect(odbc::odbc(),
-                 #dsn = dsn_name,
-                 dsn = "SNOWPIT",
+                 dsn = dsn_name,
                  database = database_name,
                  TrustedConnection = TRUE)
 
@@ -334,7 +348,7 @@ combined_data <- combined_data %>%
                         ,general_medical_practice
                         ,patient_source_type
                         ,referrer_code
-                        ,referring_org
+                        ,referring_organisation
                         ,diagnostic_test_request_date_time
                         ,diagnostic_test_request_received_date_time
                         ,diagnostic_test_date_time

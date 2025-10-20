@@ -9,7 +9,7 @@ dd.FiscalCalendarYearName
 ,COUNT(*) 'RowCount'
 FROM [Data_Lab_NCL_Dev].[PeterS].[turnaround_times] r
 LEFT JOIN [Dictionary].[dbo].[Dates] dd ON CAST(DiagnosticTestDateTime as date) = dd.FullDate
---WHERE ProviderTrustShort = 'RNOH'
+WHERE ProviderTrustShort = 'GOSH'
 GROUP BY
 dd.CalendarMonthName
 ,FiscalCalendarMonthNumber
@@ -18,6 +18,25 @@ dd.CalendarMonthName
 ORDER BY
 dd.FiscalCalendarYearName
 ,FiscalCalendarMonthNumber
+
+-- where is april?
+
+--DELETE FROM [Data_Lab_NCL_Dev].[PeterS].[turnaround_times]
+--WHERE 
+--ProviderTrustShort = 'GOSH'
+--AND CAST(DiagnosticTestDateTime as date) between '01-May-2025' AND '31-May-2025'
+--AND DataType = 'Flex'
+
+--DELETE FROM [Data_Lab_NCL_Dev].[PeterS].[turnaround_times_raw] 
+--WHERE trust_code = 'RP4' AND diagnostic_test_date_time >= '01-Feb-2025'
+--select
+--*
+--FROM [Data_Lab_NCL_Dev].[PeterS].[turnaround_times] r
+--LEFT JOIN [Dictionary].[dbo].[Dates] dd ON CAST(DiagnosticTestDateTime as date) = dd.FullDate
+--WHERE ProviderTrustShort = 'GOSH'
+--and dd.CalendarMonthName = 'May'
+--and DataType = 'Flex'
+
 
 
 -- Check by provider - by month/year
