@@ -1,3 +1,5 @@
+/* Helper script for common data quality checking queries. */
+
 /* Processed */
 
 -- Check by month/year
@@ -9,7 +11,7 @@ dd.FiscalCalendarYearName
 ,COUNT(*) 'RowCount'
 FROM [Data_Lab_NCL_Dev].[PeterS].[turnaround_times] r
 LEFT JOIN [Dictionary].[dbo].[Dates] dd ON CAST(DiagnosticTestDateTime as date) = dd.FullDate
-WHERE ProviderTrustShort = 'GOSH'
+WHERE ProviderTrustShort = 'MEH'
 GROUP BY
 dd.CalendarMonthName
 ,FiscalCalendarMonthNumber
@@ -19,13 +21,27 @@ ORDER BY
 dd.FiscalCalendarYearName
 ,FiscalCalendarMonthNumber
 
--- where is april?
 
 --DELETE FROM [Data_Lab_NCL_Dev].[PeterS].[turnaround_times]
 --WHERE 
 --ProviderTrustShort = 'GOSH'
---AND CAST(DiagnosticTestDateTime as date) between '01-May-2025' AND '31-May-2025'
+--AND CAST(DiagnosticTestDateTime as date) between '01-Jul-2025' AND '30-Sep-2025'
 --AND DataType = 'Flex'
+
+--UPDATE [Data_Lab_NCL_Dev].[PeterS].[turnaround_times]
+--SET DataType = 'Freeze'
+--WHERE
+--ProviderTrustShort = 'GOSH'
+--AND
+--CAST(DiagnosticTestDateTime as date) between '01-Aug-2025' AND '31-Aug-2025';
+
+--UPDATE [Data_Lab_NCL_Dev].[PeterS].[turnaround_times]
+--SET DataType = 'Freeze'
+--WHERE
+--ProviderTrustShort = 'RNOH'
+--AND
+--CAST(DiagnosticTestDateTime as date) between '01-Jul-2025' AND '30-Sep-2025'
+----;
 
 --DELETE FROM [Data_Lab_NCL_Dev].[PeterS].[turnaround_times_raw] 
 --WHERE trust_code = 'RP4' AND diagnostic_test_date_time >= '01-Feb-2025'
@@ -38,7 +54,6 @@ dd.FiscalCalendarYearName
 --and DataType = 'Flex'
 
 
-
 -- Check by provider - by month/year
 SELECT
 dd.FiscalCalendarYearName
@@ -49,6 +64,7 @@ dd.FiscalCalendarYearName
 ,COUNT(*) 'RowCount'
 FROM [Data_Lab_NCL_Dev].[PeterS].[turnaround_times] r
 LEFT JOIN [Dictionary].[dbo].[Dates] dd ON CAST(DiagnosticTestDateTime as date) = dd.FullDate
+WHERE CAST(DiagnosticTestDateTime as date) >= '01-Jun-2025'
 GROUP BY
 dd.CalendarMonthName
 ,FiscalCalendarMonthNumber
@@ -56,6 +72,7 @@ dd.CalendarMonthName
 ,r.ProviderTrust
 ,dd.FiscalCalendarYearName
 ORDER BY 
+ProviderTrust,
 dd.FiscalCalendarYearName
 ,FiscalCalendarMonthNumber
 

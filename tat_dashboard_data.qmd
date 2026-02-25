@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 params:
   #input_dir: "data/providers"  # Path to the directory where provider folders are stored
   #input_dir: "C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\GOSH"
-  submission_month: "Sep25"  # The date of data submission.
+  submission_month: "Jan26"  # The date of data submission.
 format: html
 editor: source
 ---
@@ -24,13 +24,13 @@ source('src/functions.R')
 #| echo: false
 
 # Define parameters for the file paths and other variables
-input_dir <- c(r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\GOSH}",
-               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\MEH}",
-               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\NMUH}",
-               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\RFL}",
-               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\RNOH}",
-               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\UCLH}",
-               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\Whittington}"
+input_dir <- c(#r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\GOSH}",
+               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\MEH}"#,
+               #r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\NMUH}",
+               #r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\RFL}",
+               #r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\RNOH}",
+               #r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\UCLH}",
+               #r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\Whittington}"
                )
 
 submission_month <- params$submission_month
@@ -40,10 +40,13 @@ database_name <- "Data_Lab_NCL_Dev"
 schema_name <- "PeterS"
 table_name <- "turnaround_times"
 
-#dsn_name <- "SNOWPIT"
-# database_name <- "DATA_LAB_NCL_TRAINING_TEMP"
-# schema_name <- r"{"PeterS"}"
-# table_name <- "turnaround_times"
+# dsn_name <- "Snowflake"
+# database_name <- "DATA_LAKE__NCL"
+# schema_name <- "ANALYST_MANAGED"
+# #table_name <- r"{"turnaround_times"}"
+# #table_name <- r"{TURNAROUND_TIMES_RAW_WRITE_TEST_BACKUP}"
+# table_name <- r"{TURNAROUND_TIMES_RAW}"
+# TURNAROUND_TIMES_RAW_WRITE_TEST_BACKUP
 
 schema_table_name <- paste(schema_name,table_name,sep = ".")
 db_sch_tbl_name <- paste0(database_name,".",schema_name,".",table_name)
@@ -324,13 +327,20 @@ delete_string_provider_short <- paste0("\'",paste(df_submitted_providers$trust_s
 delete_query <- paste0("DELETE FROM ", schema_table_name," WHERE DataType = 'Flex' AND ProviderTrustShort IN (",delete_string_provider_short,")"
                        )
 
+# delete_query <- paste0("DELETE FROM ", schema_table_name," WHERE \"DataType\" = 'Flex' AND \"ProviderTrustShort\" IN (",delete_string_provider_short,")"
+#                        )
+
 # Execute the delete query
+start_delete <- Sys.time()
 dbExecute(con, delete_query)
 message("Flex data deleted for ", paste0(paste(submitted_providers, collapse = ', ')))
+Sys.time() - start_delete
 
+start_write <- Sys.time()
 #2. upload new month
 DBI::dbWriteTable(con, DBI::SQL(schema_table_name), wrangled_data, row.names=F, append = TRUE) # write to new main table
 message("Data appended for ", submission_month,", and provider(s) ", paste0(paste(submitted_providers, collapse = ', ')) ,".")
+Sys.time() - start_write
 ```
 ## Upload data to sandpit - rolling flex/freeze - Raw
 ```{r}
@@ -375,6 +385,8 @@ combined_data <- combined_data %>%
                         )
 
 table_name_raw <- "turnaround_times_raw"
+
+
 schema_table_name_raw <- paste(schema_name,table_name_raw,sep = ".")
 db_sch_tbl_name_raw <- paste0(database_name,".",schema_name,".",table_name_raw)
 
@@ -385,13 +397,19 @@ delete_string_provider_short_raw <- paste0("\'",paste(df_submitted_providers_raw
 delete_query_raw <- paste0("DELETE FROM ", schema_table_name_raw," WHERE data_type = 'Flex' AND trust_code IN (",delete_string_provider_short_raw,")"
                        )
 
+
+# delete_query_raw <- paste0("DELETE FROM ", schema_table_name_raw," WHERE \"data_type\" = 'Flex' AND \"trust_code\" IN (",delete_string_provider_short_raw,")"
+#                        )
+
 # Execute the delete query
 dbExecute(con, delete_query_raw)
 message("Flex data deleted for ", paste0(paste(submitted_providers, collapse = ', ')))
 
+start_delete <- Sys.time()
 #2. upload new month
 DBI::dbWriteTable(con, DBI::SQL(schema_table_name_raw), combined_data, row.names=F, append = TRUE) # write to new main table
 message("Data appended for ", submission_month,", and provider(s) ", paste0(paste(submitted_providers, collapse = ', ')) ,".")
+Sys.time() - start_delete
 ```
 
 ## Upload data to sandpit - rolling flex/freeze - GPDA
