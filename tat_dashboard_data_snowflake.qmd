@@ -1,0 +1,178 @@
+---
+title: "tat_dashboard_data"
+author: "Arush Mohan, Peter Shakeshaft"
+date: "`r Sys.Date()`"
+params:
+  #input_dir: "data/providers"  # Path to the directory where provider folders are stored
+  #input_dir: "C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\GOSH"
+  submission_month: "Dec25"  # The date of data submission.
+format: html
+editor: source
+---
+
+##Setup
+
+```{r}
+#| echo: false
+
+library(renv) 
+source('src/functions.R')
+
+```
+
+```{r}
+#| echo: false
+
+# Define parameters for the file paths and other variables
+input_dir <- c(r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\GOSH}",
+               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\MEH}",
+               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\NMUH}",
+               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\RFL}",
+               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\RNOH}",
+               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\UCLH}",
+               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\Whittington}"
+               )
+
+submission_month <- params$submission_month
+
+
+dsn_name <- "Snowflake"
+database_name <- "DATA_LAKE__NCL"
+schema_name <- "ANALYST_MANAGED"
+table_name <- r"{TURNAROUND_TIMES_RAW}"
+
+schema_table_name <- paste(schema_name,table_name,sep = ".")
+db_sch_tbl_name <- paste0(database_name,".",schema_name,".",table_name)
+
+
+gpda_table_name <- "diagnostic_gpda"
+gpda_schema_table_name <- paste(schema_name,gpda_table_name,sep = ".")
+gpda_db_sch_tbl_name <- paste0(database_name,".",schema_name,".",gpda_table_name)
+
+# List all files in the input directory. recursive = FALSE doesn't look in subdirectories (e.g. historical/archive folders)
+all_files <- list.files(input_dir, recursive = FALSE, full.names = TRUE, pattern = "*.csv")
+
+# Only read files for selected submission month
+all_files <- all_files[grep(submission_month, all_files, perl=T)]
+
+# find who has submitted
+all_providers <- c("RP4","RP6","RAP","RAL","RAN","RRV","RKE")
+submitted_providers <- str_sub(basename(all_files),17,19)
+not_submitted_providers <- setdiff(all_providers, submitted_providers)
+
+paste0(paste(submitted_providers, collapse = ', '), " have submitted in ", submission_month, ".")
+paste0(paste(not_submitted_providers, collapse = ', '), " have NOT submitted in ", submission_month, ".")
+```
+
+
+## Import, assign metadata and cleanse data
+
+```{r}
+
+# apply processing function to list of files to form single dataset
+combined_data <- map_dfr(all_files, process_provider_file)
+
+# Fix UCLH and RFL missing Feb submissions. 
+# We lose November data as it is deleted as flex data during the Feb upload. 
+# Need to manually add November data back from the Jan25 file where it would be freeze and change it to flex.
+# Then manually upload WITHOUT deleting any flex data.
+
+# combined_data_novfix <- combined_data %>% filter(diagnostic_test_date_time >= as.Date("2024-11-01") & diagnostic_test_date_time <= as.Date("2024-11-30"))
+# combined_data_novfix$data_type <- "Freeze"
+# combined_data <- combined_data_novfix
+
+# Fix GOSH missing May25 (lose February data).
+# # Need to manually add February data back from the Apr25 file where it would be flex and change it to freeze.
+
+ # combined_data_febfix <- combined_data %>% filter(diagnostic_test_date_time >= as.Date("2025-02-01") & diagnostic_test_date_time <= as.Date("2025-02-28"))
+ # combined_data_febfix$data_type <- "Freeze"
+ # combined_data <- combined_data_febfix
+ 
+ # combined_data_aprfix <- combined_data %>% filter(diagnostic_test_date_time >= as.Date("2025-04-01") & diagnostic_test_date_time <= as.Date("2025-04-30"))
+ # combined_data_aprfix$data_type <- "Freeze"
+ # combined_data <- combined_data_aprfix
+
+```
+
+## Establishing a connection to Snowflake
+
+```{r}
+
+# Connect via odbc
+
+con <- dbConnect(odbc::odbc(),
+                 dsn = dsn_name,
+                 database = database_name,
+                 TrustedConnection = TRUE)
+
+
+```
+
+
+## Upload data to sandpit - rolling flex/freeze - Raw
+```{r}
+# #1. delete flex data from previous month
+
+combined_data <- combined_data %>% 
+  mutate(referring_organisation = NA) %>% 
+  select(
+                        submission_date
+                        ,data_type
+                        ,month
+                        ,year
+                        ,ethnic_category
+                        ,person_gender
+                        ,general_medical_practice
+                        ,patient_source_type
+                        ,referrer_code
+                        ,referring_organisation
+                        ,diagnostic_test_request_date_time
+                        ,diagnostic_test_request_received_date_time
+                        ,diagnostic_test_date_time
+                        ,service_report_issue_date_time
+                        ,imaging_code_nicip
+                        ,imaging_code_snomed
+                        ,provider_site_code
+                        ,priority_type_code
+                        ,cancer_pathway_flag
+                        ,file_name
+                        ,month_year
+                        ,submission_month
+                        ,submission_year
+                        ,data_period
+                        ,trust_code
+                        ,combined_imaging_code
+                        ,priority_type_code_routine_default
+                        ,TAT_scan
+                        ,TAT_report
+                        ,TAT_overall
+                        ,datedifftest
+                        ,cancer_pathway_flag_string
+                        ,referring_organisation
+                        )
+
+table_name_raw <- "TURNAROUND_TIMES_RAW"
+
+#table_name_raw <- r"{TURNAROUND_TIMES_RAW_WRITE_TEST_BACKUP}"
+
+schema_table_name_raw <- paste(schema_name,table_name_raw,sep = ".")
+db_sch_tbl_name_raw <- paste0(database_name,".",schema_name,".",table_name_raw)
+
+df_submitted_providers_raw <- data.frame(submitted_providers)
+
+delete_string_provider_short_raw <- paste0("\'",paste(df_submitted_providers_raw$submitted_providers, collapse = '\', \''),"\'")
+
+
+delete_query_raw <- paste0("DELETE FROM ", schema_table_name_raw," WHERE \"data_type\" = 'Flex' AND \"trust_code\" IN (",delete_string_provider_short_raw,")"
+                       )
+
+# Execute the delete query
+dbExecute(con, delete_query_raw)
+message("Flex data deleted for ", paste0(paste(submitted_providers, collapse = ', ')))
+
+start_delete <- Sys.time()
+#2. upload new month
+DBI::dbWriteTable(con, DBI::SQL(schema_table_name_raw), combined_data, row.names=F, append = TRUE) # write to new main table
+message("Data appended for ", submission_month,", and provider(s) ", paste0(paste(submitted_providers, collapse = ', ')) ,".")
+Sys.time() - start_delete
+```
