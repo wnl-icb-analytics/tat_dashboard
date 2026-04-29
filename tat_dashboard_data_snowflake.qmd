@@ -5,7 +5,7 @@ date: "`r Sys.Date()`"
 params:
   #input_dir: "data/providers"  # Path to the directory where provider folders are stored
   #input_dir: "C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\GOSH"
-  submission_month: "Dec25"  # The date of data submission.
+  submission_month: "Mar26"  # The date of data submission.
 format: html
 editor: source
 ---
@@ -14,6 +14,9 @@ editor: source
 
 ```{r}
 #| echo: false
+if (interactive()) {
+params <- rmarkdown::yaml_front_matter(rstudioapi::getSourceEditorContext()$path)$params
+}
 
 library(renv) 
 source('src/functions.R')
@@ -24,13 +27,13 @@ source('src/functions.R')
 #| echo: false
 
 # Define parameters for the file paths and other variables
-input_dir <- c(r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\GOSH}",
-               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\MEH}",
-               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\NMUH}",
-               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\RFL}",
-               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\RNOH}",
-               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\UCLH}",
-               r"{C:\Users\PeterShakeshaft\OneDrive - NHS\Turnaround Times\Provider Submissions\Whittington}"
+input_dir <- c(r"{C:\Users\NM2.PD6R5CTP\OneDrive - NHS\Turnaround Times\Provider Submissions\GOSH}",
+               r"{C:\Users\NM2.PD6R5CTP\OneDrive - NHS\Turnaround Times\Provider Submissions\MEH}",
+               r"{C:\Users\NM2.PD6R5CTP\OneDrive - NHS\Turnaround Times\Provider Submissions\NMUH}",
+               r"{C:\Users\NM2.PD6R5CTP\OneDrive - NHS\Turnaround Times\Provider Submissions\RFL}",
+               r"{C:\Users\NM2.PD6R5CTP\OneDrive - NHS\Turnaround Times\Provider Submissions\RNOH}",
+               r"{C:\Users\NM2.PD6R5CTP\OneDrive - NHS\Turnaround Times\Provider Submissions\UCLH}",
+               r"{C:\Users\NM2.PD6R5CTP\OneDrive - NHS\Turnaround Times\Provider Submissions\Whittington}"
                )
 
 submission_month <- params$submission_month
@@ -150,6 +153,9 @@ combined_data <- combined_data %>%
                         ,cancer_pathway_flag_string
                         ,referring_organisation
                         )
+
+# combined_dataf <- combined_data %>% filter(datedifftest >= -2)
+# combined_data <- combined_dataf
 
 table_name_raw <- "TURNAROUND_TIMES_RAW"
 
